@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, console.log('app is listening on port 4000'));
 
 app.use(bodyParser.json());
+app.use(cors());
 
 
 
