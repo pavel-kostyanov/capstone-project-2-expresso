@@ -3,6 +3,18 @@ const menuitemsRouter = express.Router({mergeParams: true});
 const sqlite3 = require('sqlite3');
 const db = new sqlite3.Database(process.env.TEST_DATABASE || './database.sqlite');
 
+menuitemsRouter.use('/:menuItemId', (req, res, next) => {
+  db.get(`SELECT id FROM MenuItem WHERE MenuItem.id = ${req.params.menuItemId}`, (err, menuItemId) => {
+    if(err){
+      next(err);
+    }else if(!menuItemId){
+      res.sendStatus(404);
+    }else{
+      next();
+    }
+  })
+})
+
 menuitemsRouter.get('/', (req, res, next) => {
   const sql = "SELECT * FROM MenuItem WHERE MenuItem.menu_id = $menu_id";
   const values = {$menu_id: req.params.menuId};
@@ -44,26 +56,49 @@ menuitemsRouter.post('/', (req, res, next) => {
        })
      }
    })
+ })
+
+menuitemsRouter.put('/:menuItemId', (req, res, next) => {
+  const name = req.body.menuItem.name;
+  const description = req.body.menuItem.description;
+  const inventory = req.body.menuItem.inventory;
+  const price = req.body.menuItem.price;
+  if(!name || !description || !inventory || !price){
+    return res.sendStatus(400);
+  };
+  const sql = 'UPDATE MenuItem SET name = $name, description = $description, inventory = $inventory, price = $price, menu_id = $menu_id';
+  const values = {
+                  $name: name,
+                  $description: description,
+                  $inventory: inventory,
+                  $price: price,
+                  $menu_id: req.params.menuId
+                  };
+  db.run(sql, values, (err) => {
+    if(err){
+      next(err);
+    }else{
+      db.get(`SELECT * FROM MenuItem WHERE MenuItem.id = ${req.params.menuItemId}`, (err, menuItem) => {
+          if(err){
+            next(err);
+          }else{
+            res.status(200).json({menuItem: menuItem});
+          }
+        })
+      }
+    })
 })
 
 menuitemsRouter.delete('/:menuItemId', (req, res, next) => {
-  db.get(`SELECT id FROM MenuItem WHERE MenuItem.id = ${req.params.menuItemId}`, (err, menuItemId) => {
-    if(err){
-      next(err);
-    }else if(menuItemId){
-      const sql = "DELETE FROM MenuItem WHERE MenuItem.id = $id";
-      const values = {$id: req.params.menuItemId};
-      db.run(sql, values, (error) => {
-        if(error){
-          next(error);
-        }else{
-          res.sendStatus(204);
-        }
-      })
-    }else{
-        res.sendStatus(404);
-    }
-  })
+  const sql = "DELETE FROM MenuItem WHERE MenuItem.id = $id";
+  const values = {$id: req.params.menuItemId};
+    db.run(sql, values, (error) => {
+      if(error){
+        next(error);
+      }else{
+        res.sendStatus(204);
+      }
+    })
 })
 
 
